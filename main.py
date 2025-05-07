@@ -650,10 +650,20 @@ print(df_train_scaled.sample(5).T)
 # - Data latih akhir memiliki ukuran `(169810, 21)` dan data uji `(45895, 21)` — semua fitur telah berada pada skala yang seragam dan siap untuk proses modeling selanjutnya.
 #
 
+print(
+    y_train_clean[y_train_clean == 1].shape[0],
+    y_train_clean[y_train_clean == 0].shape[0],
+)
 
 smote = SMOTE(random_state=42)
 X_train_final, y_train_final = smote.fit_resample(X_train_scaled, y_train_clean)
 
+print(
+    y_train_final[y_train_final == 1].shape[0],
+    y_train_final[y_train_final == 0].shape[0],
+)
+
+print(X_train_final.shape, y_train_final.shape, X_test_scaled.shape, y_test.shape)
 
 # Penjelasan:
 # - Dataset ini memiliki distribusi kelas target yang **tidak seimbang**, di mana jumlah kasus non-diabetes jauh lebih banyak daripada kasus diabetes.
