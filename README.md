@@ -48,6 +48,101 @@ Dataset ini merupakan hasil survei BRFSS (Behavioral Risk Factor Surveillance Sy
 
 Referensi Kaggle: [https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset)
 
+### 📐 Ukuran Dataset
+
+- **Jumlah baris**: 253.680
+- **Jumlah kolom**: 22 (termasuk 1 target klasifikasi)
+### 🧪 Kondisi Data
+
+#### 1. Missing Values
+Proses dimulai dengan memeriksa missing values menggunakan fungsi isnull().
+
+```
+dataset.isnull().sum()
+```
+Dataset **tidak memiliki missing values**, diperiksa menggunakan.
+
+#### 2. Duplikat
+
+Pemeriksaan duplikat dilakukan dengan mengeksekusi kode berikut ini.
+```
+dataset.duplicated().sum()
+```
+Kode di atas menunjukan adanya 24206 data yang terduplikat. Masalah duplikat ini akan ditangani pada proses pembersihan data.
+
+Ditemukan **24.206** data duplikat. Diatasi dengan `dataset.drop_duplicates(inplace=True)`.
+
+#### 3. Outlier
+Pemeriksaan outlier pada dataset dilakukan menggunakan metode perhitungan IQR. Metode ini menggunakan perhitungan matematika untuk menemukan lower bound dan upper bound dari setiap kolom, lalu mengidentifikasi outlier dengan cara melihat apakah data tersebut ada dalam rentang upper bound dan lower bound.
+
+Berikut ini merupakan rumus perhitungan IQR.
+
+IQR = Q3 - Q1
+
+Lower Bound = Q1 − 1.5 × IQR
+
+Upper Bound = Q3 + 1.5 × IQR
+
+Di bawah ini merupakan hasil pemeriksaan outlier menggunakan IQR pada dataset ini.
+<table>
+  <thead>
+    <tr>
+      <th>Kolom</th>
+      <th>Jumlah Outlier</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Diabetes_binary</td><td>35346</td></tr>
+    <tr><td>CholCheck</td><td>9470</td></tr>
+    <tr><td>Stroke</td><td>10292</td></tr>
+    <tr><td>HeartDiseaseorAttack</td><td>23893</td></tr>
+    <tr><td>PhysActivity</td><td>61760</td></tr>
+    <tr><td>Veggies</td><td>47839</td></tr>
+    <tr><td>HvyAlcoholConsump</td><td>14256</td></tr>
+    <tr><td>AnyHealthcare</td><td>12417</td></tr>
+    <tr><td>NoDocbcCost</td><td>21354</td></tr>
+    <tr><td>GenHlth</td><td>12081</td></tr>
+    <tr><td>MentHlth</td><td>36208</td></tr>
+    <tr><td>PhysHlth</td><td>40949</td></tr>
+    <tr><td>DiffWalk</td><td>42675</td></tr>
+  </tbody>
+</table>
+
+### 🧾 Uraian Fitur
+
+<table>
+  <thead>
+    <tr>
+      <th>Fitur</th>
+      <th>Deskripsi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Diabetes_binary</td><td>Target klasifikasi: 0 = tidak diabetes, 1 = diabetes/prediabetes</td></tr>
+    <tr><td>HighBP</td><td>Tekanan darah tinggi</td></tr>
+    <tr><td>HighChol</td><td>Kolesterol tinggi</td></tr>
+    <tr><td>CholCheck</td><td>Pemeriksaan kolesterol dalam 5 tahun terakhir</td></tr>
+    <tr><td>BMI</td><td>Body Mass Index</td></tr>
+    <tr><td>Smoker</td><td>Pernah merokok minimal 100 batang</td></tr>
+    <tr><td>Stroke</td><td>Pernah terkena stroke</td></tr>
+    <tr><td>HeartDiseaseorAttack</td><td>CHD atau serangan jantung</td></tr>
+    <tr><td>PhysActivity</td><td>Aktivitas fisik 30 hari terakhir</td></tr>
+    <tr><td>Fruits</td><td>Konsumsi buah setiap hari</td></tr>
+    <tr><td>Veggies</td><td>Konsumsi sayur setiap hari</td></tr>
+    <tr><td>HvyAlcoholConsump</td><td>Konsumsi alkohol berat</td></tr>
+    <tr><td>AnyHealthcare</td><td>Akses layanan kesehatan</td></tr>
+    <tr><td>NoDocbcCost</td><td>Terhambat biaya ke dokter</td></tr>
+    <tr><td>GenHlth</td><td>Persepsi kesehatan umum (1 = sangat baik, 5 = buruk)</td></tr>
+    <tr><td>MentHlth</td><td>Hari kesehatan mental buruk (0–30)</td></tr>
+    <tr><td>PhysHlth</td><td>Hari kesehatan fisik buruk (0–30)</td></tr>
+    <tr><td>DiffWalk</td><td>Kesulitan berjalan</td></tr>
+    <tr><td>Sex</td><td>Jenis kelamin (0 = perempuan, 1 = laki-laki)</td></tr>
+    <tr><td>Age</td><td>Kategori umur (1–13)</td></tr>
+    <tr><td>Education</td><td>Tingkat pendidikan (1–6)</td></tr>
+    <tr><td>Income</td><td>Tingkat penghasilan (1–8)</td></tr>
+  </tbody>
+</table>
+
 ## 🌍 Konteks Masalah
 
 Diabetes merupakan salah satu penyakit kronis yang paling banyak diderita masyarakat AS. Sekitar 34 juta warga mengidap diabetes dan 88 juta lainnya berisiko (prediabetes). Sayangnya, banyak yang tidak menyadari status kesehatannya. Oleh karena itu, model prediksi berbasis data sangat penting untuk membantu diagnosis dini dan tindakan preventif.
@@ -155,17 +250,20 @@ Fitur-fitur lainnya umumnya tidak memiliki korelasi sangat tinggi satu sama lain
 
 Korelasi antar-fitur yang menarik juga terlihat antara `MentHlth` dan `PhysHlth` (0.52), yang menunjukkan keterkaitan antara kesehatan mental dan fisik. Selain itu, `Age` tampak berkolerasi dengan beberapa fitur seperti `HighBP`, `HeartDiseaseorAttack`, dan `DiffWalk`, menguatkan peran usia sebagai faktor risiko penyakit kronis.
 
-# 🧹 Data Cleaning
+# Data Preparation
+Pada tahapan data preparation, data akan melalui tahap pembersihan data, pembagian data, penanganan outlier, normalisasi, penanganan outlier, dan SMOTE. Tahap pembersihan data meliputi proses pemeriksaan missing values dan duplikasi data.
+
+## 🧹 Data Cleaning
 
 Sebelum proses pemodelan dimulai, dilakukan beberapa tahap pembersihan data untuk memastikan kualitas dan integritas dataset. Proses ini mencakup pemeriksaan nilai hilang, penghapusan duplikat, dan penanganan outlier.
 
-## 1. Pemeriksaan Nilai Kosong (Missing Values)
+### 1. Pemeriksaan Nilai Kosong (Missing Values)
 
 Dataset yang digunakan tidak memiliki nilai kosong (`null`) karena telah melalui tahap praproses sebelumnya. Hal ini dikonfirmasi dengan fungsi `isnull().sum()` yang menunjukkan seluruh kolom memiliki jumlah nol untuk nilai hilang.
 
 Dengan demikian, **tidak diperlukan proses imputasi atau penghapusan baris akibat missing value.**
 
-## 2. Penghapusan Data Duplikat
+### 2. Penghapusan Data Duplikat
 
 Data mentah mengandung baris duplikat identik yang dapat mempengaruhi distribusi target dan model. Oleh karena itu, dilakukan penghapusan baris duplikat menggunakan metode `drop_duplicates()`.
 
@@ -176,7 +274,7 @@ Hasilnya:
 
 Langkah ini penting untuk memastikan tidak terjadi **overfitting akibat pengulangan informasi yang sama** pada model.
 
-## 3. Penanganan Outlier
+### 3. Penanganan Outlier
 
 Untuk fitur-fitur numerik kontinu seperti `BMI`, `MentHlth`, dan `PhysHlth`, ditemukan sejumlah nilai ekstrem yang signifikan. Outlier ini terdeteksi melalui visualisasi boxplot dan metode statistik Interquartile Range (IQR).
 [![6. Outlier Detection](./plots/6.Outlier_analysis_boxplot.png)]
@@ -190,7 +288,7 @@ Dari boxplot di atas terlihat bahwa beberapa fitur dalam dataset memiliki **juml
 
 Oleh karena itu, langkah penanganan khusus terhadap outlier dilakukan dengan pendekatan deteksi anomali berbasis model, yaitu menggunakan **Isolation Forest**. Metode ini mampu mengidentifikasi outlier tanpa asumsi distribusi data, sehingga tetap mempertahankan pola yang valid secara statistik.
 
-### 🔎 Isolation Forest
+#### 🔎 Isolation Forest
 
 - Metode unsupervised berbasis pohon keputusan yang mendeteksi anomali berdasarkan kedalaman isolasi.
 - Diterapkan hanya pada data latih (bukan data uji).
@@ -199,38 +297,104 @@ Oleh karena itu, langkah penanganan khusus terhadap outlier dilakukan dengan pen
 
 Langkah ini memastikan bahwa model dilatih pada data yang bersih dan representatif tanpa noise ekstrem yang bisa menurunkan akurasi prediksi.
 
-# ⚙️ Feature Scaling dan Penyeimbangan Data
+## 📂 Pembagian Data (Train-Test Split)
 
-## 1. Normalisasi (Feature Scaling)
+Kode yang digunakan:
+```python
+X = df.drop(columns=["Diabetes_binary"])
+y = df["Diabetes_binary"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+```
+
+**Interpretasi:**
+- Data dipisahkan menjadi fitur (`X`) dan target (`y`).
+- Kemudian dibagi menjadi 80% data latih (`X_train`, `y_train`) dan 20% data uji (`X_test`, `y_test`).
+- Parameter `random_state=42` digunakan untuk menjaga konsistensi hasil split antar percobaan.
+- Ini **sangat penting** agar proses deteksi outlier dan training model tidak terkena "data leakage" dari data uji.
+
+Hasil ukuran dari masing-masing dataset:
+
+<table>
+  <thead>
+    <tr>
+      <th>Variabel</th>
+      <th>Ukuran</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>X_train</td><td>(183579, 21)</td></tr>
+    <tr><td>y_train</td><td>(183579,)</td></tr>
+    <tr><td>X_test</td><td>(45895, 21)</td></tr>
+    <tr><td>y_test</td><td>(45895,)</td></tr>
+  </tbody>
+</table>
+
+**Catatan:** Ukuran ini telah mempertimbangkan penghapusan data duplikat sebelumnya.
+
+
+## ⚙️ Feature Scaling dan Penyeimbangan Data
+
+### 1. Normalisasi (Feature Scaling)
 
 Sebelum dilakukan pelatihan model, semua fitur numerik dalam dataset dinormalisasi menggunakan metode **StandardScaler** dari Scikit-Learn.
 
-### Tujuan:
+#### Tujuan:
 - Mengubah distribusi data menjadi skala dengan **rata-rata 0 dan standar deviasi 1**.
 - Menghindari dominasi fitur dengan skala besar (misal BMI) terhadap model berbasis jarak atau gradien (seperti KNN dan Logistic Regression).
 - Menyediakan distribusi data yang stabil untuk algoritma yang sensitif terhadap perbedaan skala.
 
-### Fitur yang Diskalakan:
+#### Fitur yang Diskalakan:
 - `BMI`, `MentHlth`, `PhysHlth`, `GenHlth`, `Income`, `Education`, `Age`
 
 Normalisasi hanya dilakukan pada **data latih** (training set) dan transformasi yang sama kemudian diaplikasikan ke data uji (test set) menggunakan parameter mean dan std dari data latih.
 
 ---
 
-## 2. Penyeimbangan Data (SMOTE)
+### 2. Penyeimbangan Data (SMOTE)
 
 Dataset menunjukkan ketidakseimbangan yang cukup tinggi antara kelas 0 (non-diabetes) dan kelas 1 (diabetes). Sekitar **13.9%** dari seluruh data termasuk dalam kategori penderita diabetes.
 
-Untuk mengatasi hal ini, digunakan metode **SMOTE (Synthetic Minority Oversampling Technique)**, yaitu pendekatan pembangkitan data sintetis untuk kelas minoritas.
+Untuk mengatasi hal ini, digunakan metode **SMOTE (Synthetic Minority Oversampling Technique)**, yaitu pendekatan pembangkitan data sintetis untuk kelas minoritas. SMOTE hanya diterapkan pada data latih saja untuk menghindari kebocoran informasi dari data uji.
 
-### Tahapan:
+Sebelum menerapkan SMOTE, jumlah label target pada data latih bersih adalah 169.810, dengan rincian:
+  - **Penderita diabetes (label 1)**: 23.646 (13.92%)
+  - **Non-diabetik (label 0)**: 146.164 (86.08%)
+
+#### Tahapan:
 - Diterapkan hanya pada data latih.
 - Fitur dan label diasup ke fungsi `SMOTE()` untuk melakukan oversampling kelas minoritas hingga proporsi 1:1.
 - Model kemudian dilatih pada data yang telah seimbang agar memiliki sensitivitas yang lebih baik terhadap kasus diabetes.
 
-### Keuntungan:
+#### Keuntungan:
 - Membantu meningkatkan nilai **recall dan F1 Score**, khususnya pada model yang cenderung bias terhadap kelas mayoritas.
 - Tidak menambah duplikat literal, tetapi menghasilkan sampel baru berdasarkan interpolasi tetangga terdekat dari kelas minoritas.
+- Setelah menerapkan SMOTE, distribusi kelas target pada data latih menjadi seimbang, dengan masing-masing kelas memiliki **146.164 sampel**.
+
+Berikut merupakan tabel perbandingan distribusi Diabetes_binary sebelum dan setelah SMOTE.
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Nilai 0</th>
+      <th>Nilai 1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Sebelum</td>
+      <td>0.8608</td>
+      <td>0.1392</td>
+    </tr>
+    <tr>
+      <td>Sesudah</td>
+      <td>0.5000</td>
+      <td>0.5000</td>
+    </tr>
+  </tbody>
+</table>
 
 📌 Teknik ini terbukti efektif berdasarkan studi terdahulu seperti:  
 Sholikhati, M. E. (2022). *Klasifikasi Penyakit Stroke Menggunakan Metode SMOTE-XGBoost* (Disertasi Doktoral, Universitas Muhammadiyah Semarang).
