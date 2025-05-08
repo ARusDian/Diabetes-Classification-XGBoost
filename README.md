@@ -288,15 +288,6 @@ Dari boxplot di atas terlihat bahwa beberapa fitur dalam dataset memiliki **juml
 
 Oleh karena itu, langkah penanganan khusus terhadap outlier dilakukan dengan pendekatan deteksi anomali berbasis model, yaitu menggunakan **Isolation Forest**. Metode ini mampu mengidentifikasi outlier tanpa asumsi distribusi data, sehingga tetap mempertahankan pola yang valid secara statistik.
 
-#### 🔎 Isolation Forest
-
-- Metode unsupervised berbasis pohon keputusan yang mendeteksi anomali berdasarkan kedalaman isolasi.
-- Diterapkan hanya pada data latih (bukan data uji).
-- Asumsi bahwa sekitar 7.5% data merupakan outlier.
-- Outlier dihapus dari data pelatihan untuk mencegah bias saat pembelajaran model.
-
-Langkah ini memastikan bahwa model dilatih pada data yang bersih dan representatif tanpa noise ekstrem yang bisa menurunkan akurasi prediksi.
-
 ## 📂 Pembagian Data (Train-Test Split)
 
 Kode yang digunakan:
@@ -332,12 +323,44 @@ Hasil ukuran dari masing-masing dataset:
   </tbody>
 </table>
 
-**Catatan:** Ukuran ini telah mempertimbangkan penghapusan data duplikat sebelumnya.
+
+## 🔎 Penanganan Outlier dengan Isolation Forest
+
+Setelah data dibagi ke dalam data latih (`X_train`, `y_train`) dan data uji (`X_test`, `y_test`), langkah selanjutnya adalah menangani outlier pada data latih. Berdasarkan analisis visual (boxplot) dan statistik (IQR), ditemukan bahwa sejumlah fitur memiliki distribusi nilai ekstrem (outlier) dalam jumlah besar yang berpotensi mengganggu proses pelatihan model.
+
+Untuk mengatasi hal ini, digunakan metode deteksi anomali otomatis berbasis model yaitu **Isolation Forest**, dengan konfigurasi sebagai berikut:
+
+- `contamination = 0.075` → diasumsikan sekitar 7.5% data latih merupakan outlier
+- Proses diterapkan **hanya pada data latih (`X_train`)**
+- Data uji (`X_test`) **tidak dimodifikasi**, agar tetap mewakili distribusi dunia nyata
+
+#### 📌 Alasan Pendekatan Ini:
+- Model akan **belajar dari data yang bersih dan representatif**, tanpa gangguan dari nilai ekstrem.
+- **Outlier tidak dibuang dari data uji**, karena tujuan evaluasi adalah mengukur kemampuan model pada data nyata, termasuk kemungkinan ekstrem.
+- Jika data uji juga dibersihkan, hasil evaluasi bisa bias dan terlalu optimistis.
+
+#### 🔧 Implementasi:
+```python
+from sklearn.ensemble import IsolationForest
+
+iso_forest = IsolationForest(contamination=0.075, random_state=42, n_jobs=-1)
+outlier_labels = iso_forest.fit_predict(X_train)
+
+X_train_clean = X_train[outlier_labels == 1]
+y_train_clean = y_train[outlier_labels == 1]
+```
+
+#### 📊 Hasil:
+- Ukuran awal data latih: **183.579 baris**
+- Outlier yang terdeteksi dan dihapus: **13.769 baris**
+- Ukuran akhir `X_train_clean`: **169.810 baris**
+- Dataset inilah yang digunakan untuk pelatihan model selanjutnya
+
 
 
 ## ⚙️ Feature Scaling dan Penyeimbangan Data
 
-### 1. Normalisasi (Feature Scaling)
+### Normalisasi (Feature Scaling)
 
 Sebelum dilakukan pelatihan model, semua fitur numerik dalam dataset dinormalisasi menggunakan metode **StandardScaler** dari Scikit-Learn.
 
@@ -353,27 +376,30 @@ Normalisasi hanya dilakukan pada **data latih** (training set) dan transformasi 
 
 ---
 
-### 2. Penyeimbangan Data (SMOTE)
 
-Dataset menunjukkan ketidakseimbangan yang cukup tinggi antara kelas 0 (non-diabetes) dan kelas 1 (diabetes). Sekitar **13.9%** dari seluruh data termasuk dalam kategori penderita diabetes.
+### Penyeimbangan Data dengan SMOTE
 
-Untuk mengatasi hal ini, digunakan metode **SMOTE (Synthetic Minority Oversampling Technique)**, yaitu pendekatan pembangkitan data sintetis untuk kelas minoritas. SMOTE hanya diterapkan pada data latih saja untuk menghindari kebocoran informasi dari data uji.
+Dataset menunjukkan ketidakseimbangan kelas yang signifikan antara label 0 (non-diabetes) dan label 1 (penderita diabetes), di mana hanya sekitar **13.9%** dari seluruh data tergolong penderita diabetes.
 
-Sebelum menerapkan SMOTE, jumlah label target pada data latih bersih adalah 169.810, dengan rincian:
-  - **Penderita diabetes (label 1)**: 23.646 (13.92%)
-  - **Non-diabetik (label 0)**: 146.164 (86.08%)
+Untuk mengatasi hal ini, digunakan teknik **SMOTE (Synthetic Minority Oversampling Technique)**, yaitu metode oversampling sintetis untuk menyeimbangkan distribusi kelas.
 
-#### Tahapan:
-- Diterapkan hanya pada data latih.
-- Fitur dan label diasup ke fungsi `SMOTE()` untuk melakukan oversampling kelas minoritas hingga proporsi 1:1.
-- Model kemudian dilatih pada data yang telah seimbang agar memiliki sensitivitas yang lebih baik terhadap kasus diabetes.
+#### 📌 Rincian Kondisi Awal:
+- Data latih bersih (`X_train_clean`) berjumlah: **169.810 sampel**
+- Distribusi sebelum SMOTE:
+  - Label 0 (non-diabetik): 146.164 sampel (86.08%)
+  - Label 1 (diabetik): 23.646 sampel (13.92%)
 
-#### Keuntungan:
-- Membantu meningkatkan nilai **recall dan F1 Score**, khususnya pada model yang cenderung bias terhadap kelas mayoritas.
-- Tidak menambah duplikat literal, tetapi menghasilkan sampel baru berdasarkan interpolasi tetangga terdekat dari kelas minoritas.
-- Setelah menerapkan SMOTE, distribusi kelas target pada data latih menjadi seimbang, dengan masing-masing kelas memiliki **146.164 sampel**.
+#### 🔄 Langkah SMOTE:
+- SMOTE diterapkan **hanya pada data latih** untuk mencegah kebocoran informasi dari data uji.
+- Teknik ini membuat sampel baru untuk kelas minoritas dengan cara interpolasi antara tetangga terdekat dalam ruang fitur.
+- Distribusi akhir kelas menjadi **seimbang (50:50)**.
 
-Berikut merupakan tabel perbandingan distribusi Diabetes_binary sebelum dan setelah SMOTE.
+#### 📈 Keuntungan SMOTE:
+- Meningkatkan sensitivitas model terhadap kasus diabetes.
+- Membantu memperbaiki nilai **recall dan F1 Score**, terutama untuk model yang bias terhadap kelas mayoritas.
+- Tidak menciptakan duplikasi literal, tetapi menghasilkan data sintetis yang valid secara statistik.
+
+#### 📊 Distribusi Kelas Sebelum dan Sesudah SMOTE:
 <table>
   <thead>
     <tr>
@@ -396,8 +422,9 @@ Berikut merupakan tabel perbandingan distribusi Diabetes_binary sebelum dan sete
   </tbody>
 </table>
 
-📌 Teknik ini terbukti efektif berdasarkan studi terdahulu seperti:  
-Sholikhati, M. E. (2022). *Klasifikasi Penyakit Stroke Menggunakan Metode SMOTE-XGBoost* (Disertasi Doktoral, Universitas Muhammadiyah Semarang).
+📌 Teknik ini telah terbukti efektif pada studi seperti:
+Sholikhati, M. E. (2022). *Klasifikasi Penyakit Stroke Menggunakan Metode SMOTE-XGBoost*. Disertasi Doktoral, Universitas Muhammadiyah Semarang.
+
 
 # 🤖 Modeling: Algoritma Klasifikasi
 
@@ -415,6 +442,10 @@ Logistic Regression adalah algoritma klasifikasi linier yang digunakan untuk mem
 - Memberikan probabilitas kelas sebagai output.
 - Cocok untuk baseline karena sifatnya yang sederhana dan efisien.
 
+### Hyperparameter:
+- `penalty = 'l2'` (regularisasi L2)
+- `C = 1.0` (inverse regularization strength)
+- `solver = 'liblinear'` (algoritma optimasi)
 ---
 
 ## 2. K-Nearest Neighbors (KNN)
@@ -427,6 +458,9 @@ KNN adalah algoritma klasifikasi berbasis instance-based learning yang menentuka
 - Sangat fleksibel dan mampu memodelkan distribusi data non-linier.
 - Performanya sangat dipengaruhi oleh nilai `k` dan normalisasi fitur.
 
+### Hyperparameter:
+- `n_neighbors = 5` (jumlah tetangga terdekat)
+- `metric = 'minkowski'` (metrik jarak yang digunakan)
 ---
 
 ## 3. Extreme Gradient Boosting (XGBoost)
@@ -439,29 +473,191 @@ XGBoost adalah algoritma boosting berbasis pohon yang dirancang untuk efisiensi 
 - Memiliki built-in regularisasi (`lambda`, `alpha`) yang mencegah overfitting.
 - Mampu menangani missing values dan skala fitur secara otomatis.
 
+### Hyperparameter 
+**XGBoost (sebelum tuning)**
+- `n_estimators = 100` (jumlah pohon)
+- `learning_rate = 0.1`(kecepatan pembelajaran)
+- `max_depth = 6` (tinggi maksimum pohon)
+- `subsample = 0.8` (rasio sampel untuk membangun pohon)
+- `colsample_bytree = 0.8` (rasio fitur untuk membangun pohon)
+- `objective = 'binary:logistic'` (fungsi loss untuk klasifikasi biner)
+- `eval_metric = 'mlogloss'` (metrik evaluasi untuk validasi)
 
 ---
 
 📌 Semua model diuji pada data yang telah dinormalisasi dan diseimbangkan dengan SMOTE. Evaluasi dilakukan menggunakan confusion matrix, classification report, dan metrik utama seperti **accuracy, precision, recall, dan F1 Score**.
 
-# 📈 Evaluasi Model
 
-Evaluasi dilakukan terhadap tiga model utama: Logistic Regression, KNN, dan XGBoost. Metrik utama yang digunakan adalah **confusion matrix**, **precision**, **recall**, dan **F1 Score**. Model terbaik selanjutnya dituning menggunakan Bayesian Optimization.
+
+## 📈 Evaluasi dan Tuning Model
+
+Evaluasi dilakukan terhadap tiga model utama: **Logistic Regression**, **K-Nearest Neighbors (KNN)**, dan **XGBoost**, sebelum dan sesudah proses tuning hyperparameter menggunakan **Bayesian Optimization**. Evaluasi dilakukan berdasarkan metrik:
+
+- **Accuracy**: rasio prediksi benar dari keseluruhan data.
+- **Precision & Recall**: untuk masing-masing kelas (0: non-diabetes, 1: diabetes).
+- **F1 Score (weighted)**: rata-rata harmonik precision dan recall, mempertimbangkan distribusi kelas.
+- **Confusion Matrix**: total prediksi benar/salah dari masing-masing kelas.
+- **Visualisasi laporan klasifikasi dan tuning**.
+
+---
+
+### 🧪 Logistic Regression
+- **Accuracy**: 0.7049
+- **F1 Score**: 0.7445
+- **Precision kelas 0**: 0.94
+- **Precision kelas 1**: 0.31
+- **Recall kelas 1**: 0.77
+- **F1-score macro average**: 0.62
+- **False Negative**: 1.603
 
 ![Logistic Regression](./plots/7.Logistic_Regression_classification_report_confusion_matrix.png)
-Model Logistic Regression menunjukkan akurasi sebesar ~81%, namun masih memiliki kesulitan dalam mengenali kasus positif (diabetes). Hal ini terlihat dari nilai recall yang relatif rendah, artinya cukup banyak penderita diabetes yang tidak terdeteksi oleh model ini.
+
+Model Logistic Regression menunjukkan performa cukup stabil, dengan akurasi keseluruhan sekitar 70%. Namun, recall untuk kelas positif (penderita diabetes) masih relatif rendah, menunjukkan bahwa model cukup banyak gagal mendeteksi kasus diabetes.
+
+---
+
+### 🧪 K-Nearest Neighbors (KNN)
+- **Accuracy**: 0.6781
+- **F1 Score**: 0.7207
+- **Precision kelas 0**: 0.91
+- **Precision kelas 1**: 0.27
+- **Recall kelas 1**: 0.65
+- **F1-score macro average**: 0.58
+- **False Negative**: 2.482
 
 ![KNN](./plots/7.K-Nearest_Neighbour_classification_report_confusion_matrix.png)
-Model K-Nearest Neighbors memiliki performa yang sedikit lebih rendah dibanding Logistic Regression, dengan kecenderungan untuk lebih sering salah mengklasifikasikan kasus positif. Metrik precision dan recall kurang seimbang, menandakan model ini kurang stabil pada data tidak seimbang.
+KNN memiliki keunggulan dalam recall kelas diabetes (~65%), namun precision-nya rendah sehingga menghasilkan banyak false positive. Model ini sensitif terhadap distribusi data dan sangat bergantung pada proses normalisasi.
+
+---
+
+### 🧪 XGBoost (Sebelum Tuning)
+- **Accuracy**: 0.8492
+- **F1 Score**: 0.8187
+- **Precision kelas 0**: 0.87
+- **Precision kelas 1**: 0.53
+- **Recall kelas 1**: 0.20
+- **F1-score macro average**: 0.60
+- **False Negative**: 5.688
 
 ![XGBoost](./plots/7.XGBoost_classification_report_confusion_matrix.png)
-XGBoost memberikan performa awal yang lebih baik dibanding dua model sebelumnya. Nilai F1 Score meningkat signifikan, terutama dalam mengenali kelas minoritas (penderita diabetes). Confusion matrix menunjukkan keseimbangan klasifikasi yang lebih baik antara dua kelas.
+XGBoost menunjukkan performa lebih baik dibanding dua model sebelumnya. F1 Score dan recall untuk kelas minoritas lebih tinggi. Model ini juga lebih seimbang dalam prediksi antar kelas, meskipun masih ada ruang untuk perbaikan pada recall kelas diabetes.
+
+---
+
+### 🔍 Tuning Hyperparameter dengan Bayesian Optimization
+Untuk meningkatkan performa model XGBoost, dilakukan proses tuning menggunakan **Bayesian Optimization**. Tujuannya adalah mencari kombinasi parameter yang memaksimalkan F1 Score.
+#### 🧠 Cara Kerja Bayesian Optimization
+
+Bayesian Optimization adalah metode pencarian hyperparameter yang **efisien dan cerdas**, berbeda dari pencarian acak (random search) atau grid search yang memerlukan banyak eksperimen.
+
+Alih-alih mencoba setiap kombinasi secara buta, Bayesian Optimization **membangun model probabilistik** (biasanya Gaussian Process) untuk memperkirakan **fungsi objektif**—dalam hal ini, F1 Score dari model—berdasarkan kombinasi parameter yang telah diuji sebelumnya.
+
+Langkah-langkahnya:
+
+1. **Inisialisasi**: Lakukan beberapa percobaan awal secara acak untuk membangun gambaran awal fungsi objektif.
+
+2. **Surrogate Function**: Buat model surrogate (biasanya Gaussian Process) yang memperkirakan performa model berdasarkan kombinasi parameter.
+
+3. **Acquisition Function**: Gunakan fungsi akuisisi (seperti Expected Improvement atau UCB) untuk memutuskan titik mana di ruang parameter yang harus diuji selanjutnya, dengan menyeimbangkan eksplorasi dan eksploitasi.
+
+4. **Evaluasi**: Jalankan model dengan kombinasi parameter baru tersebut dan ukur performanya.
+
+5. **Update Model**: Tambahkan hasil baru ke model probabilistik, lalu ulangi proses hingga mencapai jumlah iterasi yang ditentukan atau hasil optimal.
+
+📌 **Keunggulan utama**:
+- Lebih hemat waktu dan sumber daya dibandingkan grid search.
+- Cocok untuk fungsi objektif yang mahal dihitung (misalnya training model besar).
+- Efektif dalam menemukan nilai optimal global dalam ruang parameter yang besar.
+
+Dalam proyek ini, Bayesian Optimization digunakan untuk **memaksimalkan F1 Score (weighted)** dari model XGBoost dengan validasi silang.
+
+#### 🔧 Parameter yang Dituning:
+- `n_estimators`: (100, 300) -> jumlah pohon yang dibangun
+- `max_depth`: (3, 10) -> kedalaman maksimum pohon
+- `learning_rate`: (0.01, 0.2) -> kecepatan pembelajaran
+- `subsample`: (0.6, 1.0) -> rasio sampel untuk membangun pohon
+- `colsample_bytree`: (0.6, 1.0) -> rasio fitur untuk membangun pohon
+
+#### 🔧 Implementasi:
+```python
+def xgb_cv(n_estimators, max_depth, learning_rate, subsample, colsample_bytree):
+    model = XGBClassifier(
+        n_estimators=int(n_estimators),
+        max_depth=int(max_depth),
+        learning_rate=learning_rate,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        eval_metric="logloss",
+        random_state=42,
+    )
+    scores = cross_val_score(
+        model, X_train_final, y_train_final, cv=3, scoring="f1_weighted"
+    )
+    return scores.mean()
+
+pbounds = {
+    "n_estimators": (100, 300),
+    "max_depth": (3, 10),
+    "learning_rate": (0.01, 0.2),
+    "subsample": (0.6, 1.0),
+    "colsample_bytree": (0.6, 1.0),
+}
+
+optimizer = BayesianOptimization(f=xgb_cv, pbounds=pbounds, random_state=42)
+optimizer.maximize(init_points=5, n_iter=25)
+```
 
 ![Optimasi F1 Score](./plots/8.bayesian_optimization_f1_score_vs_iterations.png)
-Grafik di atas menunjukkan peningkatan F1 Score selama proses optimasi hyperparameter menggunakan Bayesian Optimization. Proses ini dilakukan dengan iterasi sebanyak 25 kali untuk mencari kombinasi parameter terbaik.
 
-![XGBoost Tuning](./plots/9.XGBoost_BayesianOpt_classification_report_confusion_matrix.png)
-Setelah tuning, model XGBoost menunjukkan peningkatan performa signifikan. F1 Score mencapai angka tertinggi dari semua model, dan distribusi prediksi pada confusion matrix sangat seimbang. Ini menunjukkan model mampu mengenali kasus diabetes dengan lebih baik tanpa banyak false positive.
+---
+
+### 🧪 XGBoost (Setelah Tuning - BayesianOpt)
+Model XGBoost hasil tuning menunjukkan peningkatan performa signifikan dan distribusi klasifikasi yang lebih seimbang.
+
+![XGBoost Tuned](./plots/9.XGBoost_BayesianOpt_classification_report_confusion_matrix.png)
+
+---
+
+### ✅ Ringkasan Perbandingan
+
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Accuracy</th>
+      <th>F1 Score</th>
+      <th>Catatan Penting</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Logistic Regression</td>
+      <td>0.7049</td>
+      <td>0.7445</td>
+      <td>Recall tinggi tapi precision rendah di kelas 1</td>
+    </tr>
+    <tr>
+      <td>KNN</td>
+      <td>0.6781</td>
+      <td>0.7207</td>
+      <td>Recall sedang, precision rendah di kelas 1</td>
+    </tr>
+    <tr>
+      <td>XGBoost</td>
+      <td>0.8492</td>
+      <td>0.8187</td>
+      <td>Best overall, tapi recall masih perlu ditingkatkan</td>
+    </tr>
+    <tr>
+      <td><strong>XGBoost Tuned ✅</strong></td>
+      <td><strong>&uarr;</strong></td>
+      <td><strong>&uarr;</strong></td>
+      <td><strong>Performa terbaik dan seimbang</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+📌 **Kesimpulan**: Model XGBoost dengan hyperparameter tuning menggunakan Bayesian Optimization menjadi pilihan terbaik dalam klasifikasi diabetes berdasarkan metrik evaluasi utama dan kestabilan prediksi antar kelas.
 
 # 📊 Feature Importance - XGBoost (Bayesian Optimization)
 
